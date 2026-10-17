@@ -40,7 +40,7 @@ export function Layout() {
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <NavLink
             to="/security"
-            aria-label="ความปลอดภัยบัญชี"
+            aria-label="บัญชีและความปลอดภัย"
             className="flex h-11 w-11 items-center justify-center rounded-full bg-canvas text-ink hover:bg-slate-100"
           >
             <Settings className="h-5 w-5" />

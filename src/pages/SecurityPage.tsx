@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../hooks/useAuth";
+import { ChangePasswordCard } from "../components/ChangePasswordCard";
 
 type Mode = "loading" | "verify" | "enroll" | "done";
 
@@ -16,8 +17,9 @@ export default function SecurityPage() {
   const [err, setErr] = useState<string | null>(null);
   const started = useRef(false);
 
+  // MFA บังคับเฉพาะผู้ดูแลระบบ — พนักงานทั่วไปเห็นแค่ส่วนเปลี่ยนรหัสผ่าน
   useEffect(() => {
-    if (started.current) return;
+    if (!isAdmin || started.current) return;
     started.current = true;
     (async () => {
       const { data, error } = await supabase.auth.mfa.listFactors();
@@ -45,7 +47,7 @@ export default function SecurityPage() {
       setSecret(enr.data.totp.secret);
       setMode("enroll");
     })();
-  }, [aal]);
+  }, [isAdmin, aal]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -64,48 +66,62 @@ export default function SecurityPage() {
   }
 
   return (
-    <div className="mx-auto max-w-md rounded-[2rem] bg-white p-6 shadow-sm">
-      <h1 className="text-2xl font-semibold text-brand">ความปลอดภัยบัญชี (MFA)</h1>
-      {mode === "loading" && !err && <p className="mt-4 text-slate-500">กำลังโหลด…</p>}
-      {err && <p className="mt-4 text-sm text-red-600">{err}</p>}
+    <div className="mx-auto max-w-md space-y-5">
+      <ChangePasswordCard />
 
-      {mode === "done" && (
-        <p className="mt-4 text-emerald-700">ยืนยันตัวตนสองชั้นเรียบร้อยแล้ว</p>
-      )}
+      {isAdmin && (
+        <div className="rounded-[2rem] bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-semibold text-brand">
+            ความปลอดภัยบัญชี (MFA)
+          </h2>
+          {mode === "loading" && !err && (
+            <p className="mt-4 text-slate-500">กำลังโหลด…</p>
+          )}
+          {err && <p className="mt-4 text-sm text-red-600">{err}</p>}
 
-      {(mode === "enroll" || mode === "verify") && (
-        <form onSubmit={onSubmit} className="mt-4">
-          {mode === "enroll" ? (
-            <>
-              <p className="mb-3 text-sm text-slate-600">
-                ผู้ดูแลระบบต้องเปิดใช้ MFA: สแกน QR ด้วยแอป Authenticator
-                (Google Authenticator, Microsoft Authenticator ฯลฯ) แล้วกรอกรหัส 6 หลัก
-              </p>
-              {qr && <img src={qr} alt="QR code สำหรับ MFA" className="mx-auto mb-2 h-44 w-44" />}
-              <p className="mb-3 break-all text-center text-xs text-slate-400">
-                หรือกรอกรหัสลับ: {secret}
-              </p>
-            </>
-          ) : (
-            <p className="mb-3 text-sm text-slate-600">
-              กรอกรหัส 6 หลักจากแอป Authenticator เพื่อเข้าถึงหน้าผู้ดูแลระบบ
+          {mode === "done" && (
+            <p className="mt-4 text-emerald-700">
+              ยืนยันตัวตนสองชั้นเรียบร้อยแล้ว
             </p>
           )}
-          <input
-            inputMode="numeric"
-            pattern="[0-9]{6}"
-            maxLength={6}
-            required
-            autoComplete="one-time-code"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            className="mb-3 w-full rounded-xl border border-slate-200 px-3 py-3 text-center text-xl tracking-widest"
-            placeholder="000000"
-          />
-          <button type="submit" className="w-full rounded-full bg-brand py-3 font-medium text-white hover:bg-brand-dark">
-            ยืนยัน
-          </button>
-        </form>
+
+          {(mode === "enroll" || mode === "verify") && (
+            <form onSubmit={onSubmit} className="mt-4">
+              {mode === "enroll" ? (
+                <>
+                  <p className="mb-3 text-sm text-slate-600">
+                    ผู้ดูแลระบบต้องเปิดใช้ MFA: สแกน QR ด้วยแอป Authenticator
+                    แล้วกรอกรหัส 6 หลัก
+                  </p>
+                  {qr && (
+                    <img src={qr} alt="QR code สำหรับ MFA" className="mx-auto mb-2 h-44 w-44" />
+                  )}
+                  <p className="mb-3 break-all text-center text-xs text-slate-400">
+                    หรือกรอกรหัสลับ: {secret}
+                  </p>
+                </>
+              ) : (
+                <p className="mb-3 text-sm text-slate-600">
+                  กรอกรหัส 6 หลักจากแอป Authenticator เพื่อเข้าถึงหน้าผู้ดูแลระบบ
+                </p>
+              )}
+              <input
+                inputMode="numeric"
+                pattern="[0-9]{6}"
+                maxLength={6}
+                required
+                autoComplete="one-time-code"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                className="mb-3 w-full rounded-xl border border-slate-200 px-3 py-3 text-center text-xl tracking-widest"
+                placeholder="000000"
+              />
+              <button type="submit" className="w-full rounded-full bg-brand py-3 font-medium text-white hover:bg-brand-dark">
+                ยืนยัน
+              </button>
+            </form>
+          )}
+        </div>
       )}
     </div>
   );
