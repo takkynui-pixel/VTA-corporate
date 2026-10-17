@@ -5,7 +5,7 @@ import {
   updatePortalApp,
   type PortalApp,
 } from "../features/apps/appsApi";
-import { isSafeHttpsUrl } from "../lib/url";
+import { isAllowedUrl } from "../lib/url";
 
 type Draft = {
   code: string;
@@ -54,8 +54,8 @@ export default function AdminAppsPage() {
   async function saveRow(app: PortalApp) {
     setMsg(null);
     setErr(null);
-    if (!isSafeHttpsUrl(app.url)) {
-      setErr(`URL ของ ${app.name} ต้องขึ้นต้นด้วย https://`);
+    if (!isAllowedUrl(app.url)) {
+      setErr(`URL ของ ${app.name} ต้องเป็น https:// และโดเมน vta-service.com`);
       return;
     }
     try {
@@ -77,8 +77,8 @@ export default function AdminAppsPage() {
     e.preventDefault();
     setMsg(null);
     setErr(null);
-    if (!isSafeHttpsUrl(draft.url)) {
-      setErr("URL ต้องขึ้นต้นด้วย https://");
+    if (!isAllowedUrl(draft.url)) {
+      setErr("URL ต้องเป็น https:// และโดเมน vta-service.com");
       return;
     }
     try {
@@ -103,7 +103,7 @@ export default function AdminAppsPage() {
 
   return (
     <div>
-      <h1 className="mb-1 text-2xl font-bold text-navy">จัดการระบบ</h1>
+      <h1 className="mb-1 text-2xl font-bold text-ink">จัดการระบบ</h1>
       <p className="mb-4 text-sm text-slate-500">
         แก้ไข URL เปิด/ปิดใช้งาน และเพิ่มระบบใหม่ ส่วนการกำหนดสิทธิ์รายบทบาท
         ทำผ่าน Supabase (SQL / Dashboard)
@@ -115,7 +115,7 @@ export default function AdminAppsPage() {
         {apps.map((a) => (
           <div
             key={a.id}
-            className="grid gap-2 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-12"
+            className="grid gap-2 rounded-[1.5rem] bg-white p-4 shadow-sm md:grid-cols-12"
           >
             <div className="md:col-span-2">
               <div className="text-xs text-slate-400">{a.code}</div>
@@ -165,7 +165,7 @@ export default function AdminAppsPage() {
               <button
                 type="button"
                 onClick={() => saveRow(a)}
-                className="rounded-lg bg-navy px-3 py-1.5 text-sm text-white"
+                className="rounded-lg bg-brand px-3 py-1.5 text-sm text-white"
               >
                 บันทึก
               </button>

@@ -17,9 +17,11 @@ export function ProtectedRoute() {
   return <Outlet />;
 }
 
+/** หน้า Admin: ต้องเป็น portal_admin และยืนยัน MFA (aal2) แล้ว */
 export function AdminRoute() {
-  const { loading, isAdmin } = useAuth();
+  const { loading, isAdmin, aal } = useAuth();
   if (loading) return <Spinner />;
   if (!isAdmin) return <Navigate to="/" replace />;
+  if (aal !== "aal2") return <Navigate to="/security" replace />;
   return <Outlet />;
 }

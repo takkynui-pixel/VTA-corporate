@@ -1,6 +1,6 @@
 -- รันด้วย: npx supabase test db   (ต้องมี Supabase CLI + Docker)
 begin;
-select plan(9);
+select plan(10);
 
 -- ข้อมูลทดสอบ
 insert into auth.users (id, email) values
@@ -12,7 +12,7 @@ select '00000000-0000-0000-0000-0000000000a1', id from public.portal_roles where
 insert into public.portal_user_roles (user_id, role_id)
 select '00000000-0000-0000-0000-0000000000a2', id from public.portal_roles where code = 'portal_admin';
 
-update public.portal_apps set is_active = true, url = 'https://test.example.com';
+update public.portal_apps set is_active = true, url = 'https://test.vta-service.com';
 
 -- ===== Employee =====
 set local role authenticated;
@@ -38,7 +38,7 @@ select lives_ok(
 
 select is(
   (select url from public.portal_apps where code = 'checkin'),
-  'https://test.example.com',
+  'https://test.vta-service.com',
   'URL ของ checkin ไม่ถูกเปลี่ยนโดย employee'
 );
 
@@ -61,7 +61,7 @@ select is_empty(
 
 -- ===== Admin =====
 select set_config('request.jwt.claims',
-  '{"sub":"00000000-0000-0000-0000-0000000000a2","role":"authenticated"}', true);
+  '{"sub":"00000000-0000-0000-0000-0000000000a2","role":"authenticated","aal":"aal2"}', true);
 
 select isnt_empty(
   $$ select 1 from public.portal_apps where code = 'payroll' $$,
@@ -71,6 +71,11 @@ select isnt_empty(
 select throws_ok(
   $$ update public.portal_apps set url = 'http://insecure.example' where code = 'checkin' $$,
   '23514', null, 'URL ที่ไม่ใช่ https ถูกปฏิเสธโดย constraint'
+);
+
+select throws_ok(
+  $$ update public.portal_apps set url = 'https://evil.example.com' where code = 'checkin' $$,
+  '23514', null, 'URL นอกโดเมน vta-service.com ถูกปฏิเสธ'
 );
 
 select * from finish();

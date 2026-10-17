@@ -1,86 +1,71 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { Home, LogOut, Settings } from "lucide-react";
+import { LogOut, Settings } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 
 export function Layout() {
-  const { profile, session, roles, isAdmin, signOut } = useAuth();
+  const { profile, session, isAdmin, signOut } = useAuth();
   const name = profile?.display_name || session?.user.email || "";
+  const initial = (name[0] ?? "?").toUpperCase();
 
-  const link = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
-      isActive ? "bg-white/15 text-white" : "text-slate-300 hover:bg-white/10"
+  const pill = ({ isActive }: { isActive: boolean }) =>
+    `whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-medium transition ${
+      isActive
+        ? "bg-linear-to-b from-brand-soft to-brand-dark text-white shadow-md"
+        : "bg-canvas text-ink hover:bg-slate-100"
     }`;
 
   return (
-    <div className="min-h-screen md:flex">
-      <aside className="hidden w-60 shrink-0 flex-col bg-navy p-4 md:flex">
-        <div className="mb-8 px-2">
-          <div className="text-lg font-bold tracking-wide text-white">
-            VTA WORKSPACE
-          </div>
-          <div className="text-xs text-slate-300">Corporate System Portal</div>
-        </div>
-        <nav className="flex flex-col gap-1">
-          <NavLink to="/" end className={link}>
-            <Home className="h-4 w-4" /> หน้าหลัก
+    <div className="mx-auto my-3 max-w-[1500px] rounded-[2rem] bg-canvas p-3 md:my-7 md:rounded-[2.5rem] md:p-8">
+      <header className="mb-8 flex flex-wrap items-center gap-3 rounded-[1.75rem] bg-white px-4 py-3 shadow-sm md:flex-nowrap md:px-7">
+        <NavLink to="/" className="shrink-0">
+          <img src="/logo.png" alt="VTA Service Co., Ltd." className="h-10 w-auto md:h-12" />
+        </NavLink>
+
+        <nav className="order-last flex w-full gap-2 overflow-x-auto md:order-none md:w-auto md:flex-1 md:justify-center">
+          <NavLink to="/" end className={pill}>
+            ภาพรวม
           </NavLink>
           {isAdmin && (
-            <NavLink to="/admin/apps" className={link}>
-              <Settings className="h-4 w-4" /> จัดการระบบ
-            </NavLink>
+            <>
+              <NavLink to="/admin/apps" className={pill}>
+                จัดการระบบ
+              </NavLink>
+              <NavLink to="/admin/users" className={pill}>
+                ผู้ใช้และสิทธิ์
+              </NavLink>
+            </>
           )}
         </nav>
-        <div className="mt-auto border-t border-white/10 pt-4 text-xs text-slate-300">
-          <div className="truncate font-medium text-white">{name}</div>
-          <div className="mb-3 truncate">{roles.join(", ")}</div>
-          <button
-            type="button"
-            onClick={signOut}
-            className="flex items-center gap-2 text-slate-300 hover:text-white"
-          >
-            <LogOut className="h-4 w-4" /> ออกจากระบบ
-          </button>
-        </div>
-      </aside>
 
-      <div className="flex-1 pb-20 md:pb-0">
-        <header className="flex items-center justify-between bg-navy px-4 py-3 md:hidden">
-          <span className="font-bold text-white">VTA WORKSPACE</span>
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <NavLink
+            to="/security"
+            aria-label="ความปลอดภัยบัญชี"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-canvas text-ink hover:bg-slate-100"
+          >
+            <Settings className="h-5 w-5" />
+          </NavLink>
           <button
             type="button"
             onClick={signOut}
             aria-label="ออกจากระบบ"
-            className="text-slate-200"
+            title={`${name} · ออกจากระบบ`}
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-canvas text-ink hover:bg-slate-100"
           >
             <LogOut className="h-5 w-5" />
           </button>
-        </header>
-        <main className="mx-auto max-w-6xl p-4 md:p-8">
-          <Outlet />
-        </main>
-      </div>
-
-      <nav className="fixed inset-x-0 bottom-0 flex border-t border-slate-200 bg-white md:hidden">
-        <NavLink
-          to="/"
-          end
-          className={({ isActive }) =>
-            `flex flex-1 flex-col items-center py-2 text-xs ${isActive ? "text-navy" : "text-slate-400"}`
-          }
-        >
-          <Home className="h-5 w-5" /> หน้าหลัก
-        </NavLink>
-        {isAdmin && (
-          <NavLink
-            to="/admin/apps"
-            className={({ isActive }) =>
-              `flex flex-1 flex-col items-center py-2 text-xs ${isActive ? "text-navy" : "text-slate-400"}`
-            }
+          <div
+            title={name}
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-brand font-semibold text-white"
           >
-            <Settings className="h-5 w-5" /> จัดการ
-          </NavLink>
-        )}
-      </nav>
+            {initial}
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <Outlet />
+      </main>
     </div>
   );
 }
