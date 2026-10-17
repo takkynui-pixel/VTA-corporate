@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy: #102747;
+  --color-navy-soft: #1b3a66;
+  --color-mist: #f4f6fa;
+  --font-sans: "Noto Sans Thai", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background: var(--color-mist);
+  color: #1a2433;
+  font-family: var(--font-sans);
+}
