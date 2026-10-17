@@ -17,11 +17,22 @@ async function call<T>(body: Record<string, unknown>): Promise<T> {
   });
   if (error) {
     let msg = "เรียกใช้งานไม่สำเร็จ";
-    try {
-      const j = await (error as { context?: Response }).context?.json();
-      if (j?.error) msg = j.error;
-    } catch {
-      /* ignore */
+    const res = (error as { context?: Response }).context;
+    if (error.name === "FunctionsFetchError") {
+      msg =
+        "เชื่อมต่อ Edge Function ไม่ได้ — ตรวจว่า deploy ฟังก์ชัน admin-users แล้ว และเครือข่ายไม่ถูกบล็อก";
+    } else if (res) {
+      try {
+        const j = await res.clone().json();
+        msg = j?.error ?? j?.message ?? msg;
+      } catch {
+        /* ignore */
+      }
+      if (res.status === 404) {
+        msg = "ยังไม่ได้ deploy Edge Function ชื่อ admin-users (HTTP 404)";
+      } else if (msg === "เรียกใช้งานไม่สำเร็จ") {
+        msg = `เรียกใช้งานไม่สำเร็จ (HTTP ${res.status})`;
+      }
     }
     throw new Error(msg);
   }

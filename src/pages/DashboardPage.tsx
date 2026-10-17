@@ -86,7 +86,7 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <h1 className="text-4xl font-semibold text-brand md:text-5xl">
+      <h1 className="text-xl font-semibold text-brand md:text-2xl">
         {greeting()}, {name}!
       </h1>
 
