@@ -8,6 +8,7 @@ import {
   removeFavorite,
 } from "../features/favorites/favoritesApi";
 import { AppCard } from "../components/AppCard";
+import { CATEGORIES, categoryKeyOf } from "../lib/appStyle";
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -28,6 +29,7 @@ export default function DashboardPage() {
   const [apps, setApps] = useState<PortalApp[]>([]);
   const [favs, setFavs] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState("");
+  const [activeCat, setActiveCat] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState(new Date());
@@ -66,20 +68,37 @@ export default function DashboardPage() {
     [favs, userId],
   );
 
-  const filtered = useMemo(() => {
+  // จำนวนระบบในแต่ละหมวด (นับจากทั้งหมดที่ผู้ใช้มีสิทธิ์)
+  const counts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const a of apps) {
+      const k = categoryKeyOf(a.category);
+      m.set(k, (m.get(k) ?? 0) + 1);
+    }
+    return m;
+  }, [apps]);
+
+  // แบ่งกลุ่มตามหมวด หลังกรองด้วยคำค้นและหมวดที่เลือก
+  const sections = useMemo(() => {
     const q = query.trim().toLowerCase();
     const list = apps.filter(
       (a) =>
-        !q ||
-        a.name.toLowerCase().includes(q) ||
-        (a.description ?? "").toLowerCase().includes(q),
+        (!q ||
+          a.name.toLowerCase().includes(q) ||
+          (a.description ?? "").toLowerCase().includes(q)) &&
+        (activeCat === "all" || categoryKeyOf(a.category) === activeCat),
     );
-    return [...list].sort(
-      (a, b) =>
-        Number(favs.has(b.id)) - Number(favs.has(a.id)) ||
-        a.sort_order - b.sort_order,
-    );
-  }, [apps, favs, query]);
+    return CATEGORIES.map((c) => ({
+      ...c,
+      apps: list
+        .filter((a) => categoryKeyOf(a.category) === c.key)
+        .sort(
+          (a, b) =>
+            Number(favs.has(b.id)) - Number(favs.has(a.id)) ||
+            a.sort_order - b.sort_order,
+        ),
+    })).filter((s) => s.apps.length > 0);
+  }, [apps, favs, query, activeCat]);
 
   const pillBtn =
     "inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm shadow-sm";
@@ -107,33 +126,85 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="flex flex-col justify-between rounded-[2rem] bg-linear-to-br from-brand-dark via-brand to-brand-soft p-6 text-white shadow-lg">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-brand">
+      {/* สรุป + ตัวกรองหมวด */}
+      <div className="mt-6 flex flex-col gap-4 rounded-[2rem] bg-linear-to-br from-brand-dark via-brand to-brand-soft p-6 text-white shadow-lg md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-4">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white text-brand">
             <Box className="h-6 w-6" />
           </div>
-          <div className="mt-8">
-            <div className="text-lg font-medium">ระบบที่เข้าถึงได้</div>
-            <div className="text-6xl font-semibold leading-tight">{apps.length}</div>
-            <div className="mt-1 text-sm text-blue-100">
+          <div>
+            <div className="text-sm text-blue-100">ระบบที่เข้าถึงได้</div>
+            <div className="text-4xl font-semibold leading-tight">{apps.length}</div>
+            <div className="text-xs text-blue-100">
               รายการโปรด {favs.size} ระบบ · เปิดในแท็บใหม่
             </div>
           </div>
         </div>
 
-        {filtered.map((app) => (
-          <AppCard
-            key={app.id}
-            app={app}
-            isFavorite={favs.has(app.id)}
-            onToggleFavorite={toggleFav}
-          />
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label="หมวดหมู่ระบบ">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeCat === "all"}
+            onClick={() => setActiveCat("all")}
+            className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+              activeCat === "all" ? "bg-white text-brand" : "bg-white/15 text-white hover:bg-white/25"
+            }`}
+          >
+            ทั้งหมด · {apps.length}
+          </button>
+          {CATEGORIES.filter((c) => (counts.get(c.key) ?? 0) > 0).map((c) => (
+            <button
+              key={c.key}
+              type="button"
+              role="tab"
+              aria-selected={activeCat === c.key}
+              onClick={() => setActiveCat(c.key)}
+              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${
+                activeCat === c.key ? "bg-white text-brand" : "bg-white/15 text-white hover:bg-white/25"
+              }`}
+            >
+              <span className={`h-2.5 w-2.5 rounded-full ${c.dot} ring-2 ring-white/70`} />
+              {c.label} · {counts.get(c.key)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* การ์ดแยกตามหมวด */}
+      <div className="mt-6 grid items-start gap-5 xl:grid-cols-2">
+        {sections.map((s) => (
+          <section
+            key={s.key}
+            className={`rounded-[2rem] bg-white p-5 shadow-sm md:p-6 ${
+              s.apps.length > 2 ? "xl:col-span-2" : ""
+            }`}
+          >
+            <header className="mb-4 flex items-center gap-3">
+              <span className={`h-3 w-3 rounded-full ${s.dot}`} />
+              <h2 className="text-lg font-semibold text-ink">{s.label}</h2>
+              <span className="rounded-full bg-canvas px-2.5 py-0.5 text-xs text-slate-500">
+                {s.apps.length} ระบบ
+              </span>
+              <span className="ml-auto hidden text-xs text-slate-400 sm:inline">{s.hint}</span>
+            </header>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {s.apps.map((app) => (
+                <AppCard
+                  key={app.id}
+                  app={app}
+                  isFavorite={favs.has(app.id)}
+                  onToggleFavorite={toggleFav}
+                />
+              ))}
+            </div>
+          </section>
         ))}
       </div>
 
       {loading && <p className="mt-6 text-slate-500">กำลังโหลด…</p>}
       {error && <p className="mt-6 text-red-600">{error}</p>}
-      {!loading && !error && filtered.length === 0 && (
+      {!loading && !error && sections.length === 0 && (
         <p className="mt-6 rounded-[1.5rem] bg-white p-6 text-center text-slate-500">
           {apps.length === 0
             ? "ยังไม่มีระบบที่คุณมีสิทธิ์เข้าถึง กรุณาติดต่อผู้ดูแลระบบ"
